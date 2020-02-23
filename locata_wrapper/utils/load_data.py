@@ -12,7 +12,12 @@ import python_speech_features  # NOQA
 import soundfile
 import sys
 
+from locata_wrapper.utils.shared import ElapsedTime
 from locata_wrapper.utils.shared import wrapToPi
+
+from scipy.signal import resample
+
+from matplotlib import pyplot as plt
 
 
 def cart2pol(cart):
@@ -166,7 +171,7 @@ def LoadData(this_array, log=logging, is_dev=True):
     return audio_array, audio_source, position_array, position_source, required_time
 
 
-def GetTruth(this_array, position_array, position_source, required_time, is_dev=True):
+def GetTruth(array_dir, position_array, position_source, required_time, is_dev=True, log=logging):
     """GetLocataTruth
 
     creates Namespace containing OptiTrac ground truth data for and relative to the specified array
@@ -185,7 +190,9 @@ def GetTruth(this_array, position_array, position_source, required_time, is_dev=
                           only returned for the development datbase
                           (is_dev = 1).
     """
+    this_array = os.path.basename(array_dir)
     truth = Namespace()
+    fs = 48e3
 
     # Specified array
     truth.array = position_array.data[this_array]
@@ -213,5 +220,40 @@ def GetTruth(this_array, position_array, position_source, required_time, is_dev=
 
             # Returned in azimuth, elevation & radius
             truth.source[src_idx].polar_pos = cart2pol(pol_pos)
+
+            # Ground-truth VAD
+            vad_vector = np.loadtxt(os.path.join(array_dir, f'VAD_{this_array}_{src_idx}.txt'), skiprows=1)
+            len_audio = vad_vector.shape[0]
+
+            t_stamps_audio = np.arange(0, len_audio).astype(np.float) / fs  # 48kHz
+            t_stamps_opti = ElapsedTime(required_time.time)  # 120Hz
+            VAD = np.zeros((t_stamps_opti.shape[0]), dtype=np.int)
+            cnt = 0
+            for i in range(1, len_audio):
+                if t_stamps_audio[i] >= t_stamps_opti[cnt]:
+                    VAD[cnt] = vad_vector[i - 1]
+                    cnt += 1
+                if cnt >= VAD.shape[0]:
+                    break
+            if cnt < VAD.shape[0]:
+                VAD[cnt:] = vad_vector[-1]
+                # Mismatch of up to 2 values to be expected
+                if cnt < VAD.shape[0] - 2:
+                    log.warning('VAD values do not match')
+
+            # Calculate number of active periods
+            vad_cnt = 0
+            for i in range(1, VAD.shape[0]):
+                if (VAD[i - 1] == 0) and (VAD[i] == 1):  # speech onset
+                    vad_cnt += 1
+
+            if np.sum(VAD) == 0:
+                raise ValueError('No VAD values found!')
+
+            # Store VAD ground-truth in structure
+            truth.source[src_idx].VAD = Namespace(
+                num_periods=np.amax([1, vad_cnt]),  # equal to one if no VAD is performed
+                activity = VAD  # VAD decisions for each timestamp
+            )
 
     return truth

@@ -21,3 +21,11 @@ def wrapToPi(_lambda):
     q = (_lambda < -np.pi) + (np.pi < _lambda)
     _lambda[q] = wrapTo2Pi(_lambda[q] + np.pi) - np.pi
     return _lambda
+
+
+def ElapsedTime(time_array):
+    n_steps = time_array.shape[0]
+    elapsed_time = np.zeros([n_steps])
+    for i in range(1, n_steps):
+        elapsed_time[i] = (time_array[i] - time_array[i - 1]).total_seconds()
+    return np.cumsum(elapsed_time)

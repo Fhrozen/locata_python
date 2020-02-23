@@ -15,16 +15,9 @@ from locata_wrapper.utils.check import CheckResults
 from locata_wrapper.utils.load_data import GetTruth
 from locata_wrapper.utils.load_data import LoadData
 from locata_wrapper.utils.metrics import Measures
+from locata_wrapper.utils.shared import ElapsedTime
 
 from matplotlib import pyplot as plt
-
-
-def ElapsedTime(time_array):
-    n_steps = time_array.shape[0]
-    elapsed_time = np.zeros([n_steps])
-    for i in range(1, n_steps):
-        elapsed_time[i] = (time_array[i] - time_array[i - 1]).total_seconds()
-    return np.cumsum(elapsed_time)
 
 
 class ProcessTask():
@@ -39,7 +32,7 @@ class ProcessTask():
         self._task_process = args.task_process
         self._save_results = args.save_results
         self._save_plots = args.save_plots
-        pass
+        self.measures = Measures()
     
     def __call__(self, this_task):
         task_dir = os.path.join(self.data_dir, 'task{}'.format(this_task))
@@ -69,7 +62,7 @@ class ProcessTask():
 
                 # position_array stores all optitrack measurements.
                 # Extract valid measurements only (specified by required_time.valid_flag).
-                groundtruth = GetTruth(rec_id[2], position_array, position_source, required_time, self.is_dev)
+                groundtruth = GetTruth(array_dir, position_array, position_source, required_time, self.is_dev)
 
                 self.log.debug('Processing Complete!')
 
@@ -80,11 +73,19 @@ class ProcessTask():
                     results = self.get_results(array_dir)
                 
                 if 'Eval' in self._task_process:
-                    Measures(groundtruth, results)
+                    self.measures(groundtruth, results)
 
     def get_results(self, array_dir):
-
-        return results
+        saved_dir = array_dir.replace(self.data_dir, self.results_dir)
+        saved_dir = os.path.join(saved_dir, self.algorithm.__name__)
+        _files = sorted(glob.glob(os.path.join(saved_dir, '*.txt')))
+        out = Namespace()
+        out.source = list()
+        for i in range(len(_files)):
+            source_file = _files[i]  # for N sources
+            source_data = pd.read_csv(source_file, sep='\t', encoding='utf-8')
+            out.source.append(source_data)
+        return out
     
     def forward(self, rec_id, audio_array, position_array, array_dir, required_time, truth):
         # Load signal
