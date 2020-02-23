@@ -122,9 +122,8 @@ def MUSIC(inputs, options, log=logging):
     for block_idx in range(nblocks):
         for freq_idx in range(valid_freq.shape[0]):  # fftPoint/2-1
             # Block of FFT frames:
-            # print(freq_idx, block_idx)
             data_block = np.squeeze(valid_X[frame_srt[block_idx]:frame_end[block_idx], freq_idx, :])
-            if data_block.shape[0] > 1:  # ensure svd does not result in empty U
+            if (data_block.ndim > 1) and (data_block.shape[0] > 1):  # ensure svd does not result in empty U
                 # Find nearest OptiTrac sample:
                 _diff = block_timestamps[block_idx] - opti_timestamps
                 closest_opti_idx = np.argmin(_diff)
