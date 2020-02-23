@@ -36,7 +36,9 @@ class ProcessTask():
         self.algorithm = algorithm
         self.opts = opts
         self.results_dir = args.results_dir
-        self.task_process = args.task_process
+        self._task_process = args.task_process
+        self._save_results = args.save_results
+        self._save_plots = args.save_plots
         pass
     
     def __call__(self, this_task):
@@ -59,29 +61,31 @@ class ProcessTask():
                 # Load data
 
                 # Load data from csv / wav files in database:
-                audio_array, audio_source, position_array, position_source, required_time = LoadData(
+                audio_array, _, position_array, position_source, required_time = LoadData(
                     array_dir, self.log, self.is_dev)
                 
                 # Extract ground truth
 
                 # position_array stores all optitrack measurements.
                 # Extract valid measurements only (specified by required_time.valid_flag).
-                truth = GetTruth(this_array, position_array, position_source, required_time, self.is_dev)
+                groundtruth = GetTruth(this_array, position_array, position_source, required_time, self.is_dev)
 
                 self.log.debug('Processing Complete!')
 
-                if 'Forward' in self.task_process:
-                    self.forward(audio_array, array_dir, truth)
+                if 'Forward' in self._task_process:
+                    results = self.forward(
+                        this_array, audio_array, position_array, array_dir, required_time, groundtruth)
                 else:
-                    self.get_results(array_dir)
+                    results = self.get_results(array_dir)
                 
-                if 'Eval' in self.task_process:
-                    self.evaluate(audio_array)
+                if 'Eval' in self._task_process:
+                    Measures(groundtruth, results)
 
     def get_results(self, array_dir):
-        pass
+
+        return results
     
-    def forward(self, audio_array, array_dir, truth):
+    def forward(self, this_array, audio_array, position_array, array_dir, required_time, truth):
         # Load signal
         in_localization = Namespace()
 
@@ -97,9 +101,6 @@ class ProcessTask():
         # Time stamps required for evaluation
         in_localization.timestamps = ElapsedTime(required_time.time)[required_time.valid_flag]
         in_localization.time = required_time.time[required_time.valid_flag]
-
-        
-
         in_localization.array = truth.array
         in_localization.array_name = this_array
         in_localization.mic_geom = truth.array.mic
@@ -115,24 +116,24 @@ class ProcessTask():
         # Plots & Save results to file
 
         self.log.info('Localization Complete!')
-        x_axis = np.average(audio_array.data[this_array], axis=1)
-        x_len = x_axis.shape[0]
-        fs = audio_array.fs 
+        if self._save_results:
+            x_axis = np.average(audio_array.data[this_array], axis=1)
+            x_len = x_axis.shape[0]
+            fs = audio_array.fs 
 
-        _idx = [x for x in truth.source]
-        # Create directory for this array in results directory
-        result_dir = array_dir.replace(self.data_dir, self.results_dir)
-        os.makedirs(result_dir, exist_ok=True)
+            _idx = [x for x in truth.source]
+            # Create directory for this array in results directory
+            result_dir = array_dir.replace(self.data_dir, self.results_dir)
+            os.makedirs(result_dir, exist_ok=True)
 
-        for source_id in range(len(results.source)):
-            df = pd.DataFrame(results.source[source_id])
-            _source_id = _idx[source_id]
-            filename = os.path.join(result_dir, 'source_{}'.format(source_id + 1))
-            df.to_csv(f'{filename}.txt', index=False, sep='\t', encoding='utf-8')
-
-    def evaluate(self, a):
-        Measures(truth, results)
-        pass
+            for source_id in range(len(results.source)):
+                df = pd.DataFrame(results.source[source_id])
+                _source_id = _idx[source_id]
+                filename = os.path.join(result_dir, 'source_{}'.format(source_id + 1))
+                df.to_csv(f'{filename}.txt', index=False, sep='\t', encoding='utf-8')
+                if self._save_plots:
+                    self.save_plots()
+        return results
     
     def save_plots(self):
         azu_x_pd = np.degrees(df[['azimuth']].values)

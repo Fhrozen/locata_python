@@ -53,6 +53,7 @@ def config_eval():
     processes = 1  # NOQA
     task_process = 'ForwardAndEval'  # NOQA
     save_results = True  # NOQA
+    save_plots = True  # NOQA
 
 
 @ex.main

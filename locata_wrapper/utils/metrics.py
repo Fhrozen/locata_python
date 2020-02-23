@@ -34,8 +34,7 @@ def Measures(truth, estimates):
 
     # src_names = fieldnames(truth.source);
     # num_trks = length([estimates.source]);
-    # num_srcs = length(src_names);
-    all_src_idx = 1:num_srcs
+    # num_srcs = length(src_names)
 
     # Check whether an elevation is provided at all
     flag_elev = 0
