@@ -51,6 +51,8 @@ def config_eval():
     tasks = [1, 2, 3, 4, 5, 6]  # NOQA
     algorithm = 'locata_wrapper.algorithm.music:MUSIC'  # NOQA
     processes = 1  # NOQA
+    task_process = 'ForwardAndEval'  # NOQA
+    save_results = True  # NOQA
 
 
 @ex.main
@@ -108,7 +110,8 @@ def main_eval(_config, _log):
 
     # Process
     # Parse through all specified task folders
-    task_process = locata_utils.ProcessTask
+    # Task: Forward, Eval, and Forward and Eval
+    task_process = locata_utils.ProcessTask(args, my_alg_name, opts, _log)
 
     # Multiprocessing
     if args.processes > 1:
@@ -117,9 +120,9 @@ def main_eval(_config, _log):
 
     for this_task in args.tasks:
         if args.processes > 1:
-            pool.map(task_process, [this_task], [my_alg_name], [opts], [args], [_log])
+            pool.map(task_process, [this_task])
         else:
-            task_process(this_task, my_alg_name, opts, args, _log)
+            task_process(this_task)
     if args.processes > 1:
         pool.close()
         pool.join()

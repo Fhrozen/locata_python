@@ -1,6 +1,7 @@
 # Copyright 2019 Waseda University (Nelson Yalta)
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import logging
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
@@ -34,18 +35,14 @@ def Measures(truth, estimates):
     # src_names = fieldnames(truth.source);
     # num_trks = length([estimates.source]);
     # num_srcs = length(src_names);
-    # all_src_idx = 1:num_srcs;
+    all_src_idx = 1:num_srcs
 
-    # % Check whether an elevation is provided at all
-    # % Note: Some participants provide no estimates for some source(s) which
-    # % requires a check for all sources
-    # flag_elev = 0;
+    # Check whether an elevation is provided at all
+    flag_elev = 0
     # for i = 1:num_trks
     #     if ~isempty(estimates.source(i).elevation)
     #         flag_elev = 1;
     #         break;
-    #     end
-    # end
 
     # if isempty(estimates.source(1).azimuth)
     #     warning('No azimuth estimates for first track!')

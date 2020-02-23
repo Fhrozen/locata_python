@@ -104,11 +104,11 @@ def load_txt(fnames, obj_type):
     return obj
 
 
-def LoadData(this_array, args=None, log=logging, is_dev=True):
+def LoadData(this_array, log=logging, is_dev=True):
     """loads LOCATA csv and wav data
 
     Inputs:
-        dir_name:     Directory name containing LOCATA data (default: ../data/)
+        this_array:     Directory name containing array data
 
     Outputs:
         audio_array:    Structure containing audio data recorded at each of the arrays
