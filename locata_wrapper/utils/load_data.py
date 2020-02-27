@@ -196,6 +196,7 @@ def GetTruth(array_dir, position_array, position_source, required_time, is_dev=T
 
     # Specified array
     truth.array = position_array.data[this_array]
+    truth.timestamps = ElapsedTime(required_time.time)  # 120Hz  t_stamps_opti
     for field in truth.array.__dict__:
         _new_value = getattr(truth.array, field)[:, required_time.valid_flag]
         setattr(truth.array, field, _new_value)
@@ -224,13 +225,11 @@ def GetTruth(array_dir, position_array, position_source, required_time, is_dev=T
             # Ground-truth VAD
             vad_vector = np.loadtxt(os.path.join(array_dir, f'VAD_{this_array}_{src_idx}.txt'), skiprows=1)
             len_audio = vad_vector.shape[0]
-
             t_stamps_audio = np.arange(0, len_audio).astype(np.float) / fs  # 48kHz
-            t_stamps_opti = ElapsedTime(required_time.time)  # 120Hz
-            VAD = np.zeros((t_stamps_opti.shape[0]), dtype=np.int)
+            VAD = np.zeros((truth.timestamps.shape[0]), dtype=np.int)  # 120Hz 
             cnt = 0
             for i in range(1, len_audio):
-                if t_stamps_audio[i] >= t_stamps_opti[cnt]:
+                if t_stamps_audio[i] >= truth.timestamps[cnt]:
                     VAD[cnt] = vad_vector[i - 1]
                     cnt += 1
                 if cnt >= VAD.shape[0]:

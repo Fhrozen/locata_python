@@ -34,13 +34,12 @@ class Measures():
     
     def __call__(self, truth, estimates):
         # True sources in recording:
-        print(len(truth.source))
-        # src_names = fieldnames(truth.source);
-        # num_trks = length([estimates.source]);
-        # num_srcs = length(src_names)
+        src_names = [x for x in truth.source]
+        num_trks = len(estimates.source)
+        num_srcs = len(src_names)
 
         # Check whether an elevation is provided at all
-        flag_elev = 0
+        flag_elev = 1
         # for i = 1:num_trks
         #     if ~isempty(estimates.source(i).elevation)
         #         flag_elev = 1;
@@ -50,32 +49,28 @@ class Measures():
         #     warning('No azimuth estimates for first track!')
         # end
 
-        # % Init:
-        # N_false = zeros(length(truth.timestamps),1);
-        # N_valid = zeros(length(truth.timestamps),1);
-        # N_miss = zeros(length(truth.timestamps),num_srcs);
-        # N_swap = zeros(length(truth.timestamps),num_srcs);
-        # az_error = nan(length(truth.timestamps),num_srcs);
-        # el_error = nan(length(truth.timestamps),num_srcs);
-        # error_az_ss = nan(length(truth.timestamps), num_srcs, num_trks);
-        # error_el_ss = nan(length(truth.timestamps), num_srcs, num_trks);
-        # OSPA_dist = nan(length(truth.timestamps), length(OSPA_p));
+        # Init:
+        x_len = truth.timestamps.shape[0]
+        N_false = np.zeros((x_len, 1))
+        N_valid = np.zeros((x_len, 1))
+        N_miss = np.zeros((x_len, num_srcs))
+        N_swap = np.zeros((x_len, num_srcs))
+        az_error = np.full_like(N_swap, np.nan)
+        el_error = np.full_like(N_swap, np.nan)
+        error_az_ss = np.full([x_len, num_srcs, num_trks], np.nan)
+        error_el_ss = np.full_like(error_az_ss, np.nan)
+        OSPA_dist = np.full([x_len, len(self.OSPA_p)], np.nan)
 
-        # % Save source-to-track and track-to-source assignments
-        # assoc_src_mat = zeros(length(truth.timestamps), num_srcs);
-        # assoc_trk_mat = zeros(length(truth.timestamps), num_trks);
+        # Save source-to-track and track-to-source assignments
+        assoc_src_mat = np.zeros([x_len, num_srcs])
+        assoc_trk_mat = np.zeros([x_len, num_trks])
 
-        # trk_active_flag = zeros(length(truth.timestamps),num_trks);
-        # prev_nonzero_assign = zeros(1,num_srcs);
-        # for t = 1 : length(truth.timestamps)
-        #     % Number of active sources and number of tracks at this time stamp:
-        #     active_src_idx = [];
-        #     for src_idx = 1 : num_srcs
-        #         if truth.source.(src_names{src_idx}).VAD.activity(t)
-        #             active_src_idx = [active_src_idx, src_idx];
-        #         end
-        #     end
-        #     num_active_srcs = length(active_src_idx);
+        trk_active_flag = np.zeros([x_len, num_trks])
+        prev_nonzero_assign = np.zeros([1, num_srcs])
+        for t in range(x_len):
+            # Number of active sources and number of tracks at this time stamp:
+            active_src_idx = [x for x in range(num_srcs) if truth.source[src_names[x]].VAD.activity[t] == 1]
+            num_active_srcs = len(active_src_idx)
             
         #     active_trk_idx = [];
         #     for trk_idx = 1 : num_trks
